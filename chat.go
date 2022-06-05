@@ -98,37 +98,24 @@ func (c *chat) handleInput(message string) {
 func (c *chat) tabComplete(v *gocui.View) {
 	buffer := v.Buffer()
 
-	if buffer == "" {
-		return
-	}
-
-	// strip \n
-	buffer = buffer[:len(buffer)-1]
-	if len(buffer) == 0 {
+	if buffer == "" || len(buffer) == 0 {
 		return
 	}
 
 	x, _ := v.Cursor()
-	strSlice := strings.Split(buffer, " ")
+	words := strings.Split(buffer, " ")
 
-	runeIndex := 0
+	// TODO: Allow autocomplete of other words
+	// runeIndex := 0
 	var selectedWordIndex int
-
-	for i, word := range strSlice {
-		if i == len(strSlice)-1 {
-			runeIndex++
-		}
-
-		if x >= runeIndex && x <= runeIndex+len(word) {
-			selectedWordIndex = i
-			break
-		}
-		runeIndex += len(word) + 1
+	if x >= len(buffer)-1 {
+		selectedWordIndex = len(words) - 1
+	} else {
+		selectedWordIndex = -1
 	}
+	selectedWord := words[selectedWordIndex]
 
-	selectedWord := strSlice[selectedWordIndex]
-
-	if selectedWordIndex != len(strSlice)-1 {
+	if selectedWordIndex != len(words)-1 {
 		// for now just deal with tabbing the last word
 		// tabbing words in the middle of a sentance
 		// is very annoying to implement
@@ -159,10 +146,10 @@ func (c *chat) tabComplete(v *gocui.View) {
 
 	c.lastSuggestions = suggestions
 	suggestion := suggestions[c.tabIndex]
-	strSlice[selectedWordIndex] = suggestion
-	newBuffer := []byte(strings.Join(strSlice, " "))
+	words[selectedWordIndex] = suggestion
+	newBuffer := []byte(strings.Join(words, " "))
 
-	newCursor := len(newBuffer) + 1
+	newCursor := len(newBuffer)
 	// for i, word := range strSlice {
 	// 	if i <= selectedWordIndex {
 	// 		newCursor += len(word) + 1

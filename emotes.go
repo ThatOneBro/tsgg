@@ -6,10 +6,28 @@ import (
 	"net/http"
 )
 
-const emoteEndpoint = "https://raw.githubusercontent.com/MemeLabs/chat-gui/master/assets/emotes.json"
+const emoteEndpoint = "https://cdn.destiny.gg/2.43.4/emotes/emotes.json"
 
-type emoteEndpointResponse struct {
-	Default []string `json:"default"`
+type ImageData struct {
+	Height int32  `json:"height"`
+	Width  int32  `json:"width"`
+	Mime   string `json:"mime"`
+	Name   string `json:"name"`
+	Url    string `json:"url"`
+}
+type Emote struct {
+	Prefix string      `json:"prefix"`
+	Twitch bool        `json:"twitch"`
+	Theme  string      `json:"theme"`
+	Image  []ImageData `json:"image"`
+}
+
+func getEmoteNames(e []Emote) []string {
+	s := make([]string, len(e))
+	for i, em := range e {
+		s[i] = em.Prefix
+	}
+	return s
 }
 
 func getEmotes() ([]string, error) {
@@ -25,13 +43,27 @@ func getEmotes() ([]string, error) {
 		return emotes, fmt.Errorf("emote endpoint status code %d", resp.StatusCode)
 	}
 
-	var er emoteEndpointResponse
+	// var em []Emote = make([]Emote, 0)
+	var em []Emote
 
-	err = json.NewDecoder(resp.Body).Decode(&er)
+	err = json.NewDecoder(resp.Body).Decode(&em)
 	if err != nil {
 		return emotes, err
 	}
 
-	emotes = append(emotes, er.Default...)
+	// b, err := ioutil.ReadAll(resp.Body)
+	// if err != nil {
+	// 	return emotes, err
+	// }
+
+	// err = json.Unmarshal(b, &em)
+	// if err != nil {
+	// 	return emotes, err
+	// }
+	// for _, item := range em {
+	// 	log.Println(item)
+	// }
+
+	emotes = append(emotes, getEmoteNames(em)...)
 	return emotes, nil
 }
