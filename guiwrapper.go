@@ -7,11 +7,14 @@ import (
 	"time"
 
 	"github.com/awesome-gocui/gocui"
+	"github.com/savioxavier/termlink"
+	"mvdan.cc/xurls/v2"
 )
 
 type guiwrapper struct {
 	gui        *gocui.Gui
 	messages   []*guimessage
+	links      []*string
 	maxlines   int
 	timeformat string
 	sync.RWMutex
@@ -25,14 +28,35 @@ type guimessage struct {
 	nick string
 }
 
+var urlRegex = xurls.Relaxed()
+
+func replaceLinksInMsg(msg string) string {
+	return urlRegex.ReplaceAllStringFunc(msg, func(s string) string { return termlink.ColorLink(s, s, "cyan") })
+}
+
+func parseLinksFromMsg(msg string) []string {
+	return urlRegex.FindAllString(msg, -1)
+}
+
 func (gw *guiwrapper) formatMessage(gm *guimessage) string {
 	formattedDate := gm.ts.Format(gw.timeformat)
-	return fmt.Sprintf("[%s]%s%s", formattedDate, gm.tag, gm.msg)
+	processed := replaceLinksInMsg(gm.msg)
+	return fmt.Sprintf("[%s]%s%s", formattedDate, gm.tag, processed)
+}
+
+func (gw *guiwrapper) formatLink(l string) string {
+	return l
 }
 
 func (gw *guiwrapper) redraw() {
 	gw.gui.Update(func(g *gocui.Gui) error {
 		messageView, err := g.View("messages")
+		if err != nil {
+			return err
+		}
+
+		var linksView *gocui.View
+		linksView, err = g.View("links")
 		if err != nil {
 			return err
 		}
@@ -60,6 +84,14 @@ func (gw *guiwrapper) redraw() {
 
 		messageView.Clear()
 		fmt.Fprint(messageView, newbuf)
+
+		newbuf = ""
+		for _, link := range gw.links {
+			newbuf += gw.formatLink(*link) + "\n"
+		}
+		linksView.Clear()
+		fmt.Fprint(linksView, newbuf)
+
 		return nil
 	})
 }
@@ -73,6 +105,10 @@ func (gw *guiwrapper) addMessage(m guimessage) {
 		gw.messages = append(gw.messages[delta:], &m)
 	} else {
 		gw.messages = append(gw.messages, &m)
+	}
+	links := parseLinksFromMsg(m.msg)
+	for i := range links {
+		gw.links = append(gw.links, &links[i])
 	}
 	gw.Unlock()
 	gw.redraw()

@@ -15,6 +15,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/MemeLabs/dggchat"
 	"github.com/awesome-gocui/gocui"
+	"golang.design/x/clipboard"
 )
 
 type config struct {
@@ -58,6 +59,11 @@ func main() {
 	_, err := toml.DecodeFile(configFile, &config)
 	if err != nil {
 		log.Fatalf("malformed configuration file: %v\n", err)
+	}
+
+	err = clipboard.Init()
+	if err != nil {
+		log.Panicln(err)
 	}
 
 	g, err := gocui.NewGui(gocui.OutputNormal, false)
@@ -118,10 +124,35 @@ func main() {
 		log.Panicln(err)
 	}
 
+	if err := g.SetKeybinding("links", gocui.MouseLeft, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		_, err = g.SetCurrentView("links")
+		if err != nil {
+			return err
+		}
+		// Check clicked links...
+		_, curY := v.Cursor()
+		line, err := v.Line(curY)
+		if err != nil {
+			return err
+		}
+		clipboard.Write(clipboard.FmtText, []byte(line))
+		return err
+	}); err != nil {
+		log.Panicln(err)
+	}
+
+	if err := g.SetKeybinding("input", gocui.MouseLeft, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		_, err = g.SetCurrentView("input")
+		return err
+	}); err != nil {
+		log.Panicln(err)
+	}
+
 	chat.mustAddScroll("messages", chat.config.ScrollingSpeed, gocui.MouseWheelUp, gocui.MouseWheelDown)
 	chat.mustAddScroll("users", chat.config.ScrollingSpeed, gocui.MouseWheelUp, gocui.MouseWheelDown)
 	chat.mustAddScroll("help", 1, gocui.MouseWheelUp, gocui.MouseWheelDown)
 	chat.mustAddScroll("debug", 1, gocui.MouseWheelUp, gocui.MouseWheelDown)
+	chat.mustAddScroll("links", 1, gocui.MouseWheelUp, gocui.MouseWheelDown)
 
 	err = g.SetKeybinding("input", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if v.Buffer() == "" {

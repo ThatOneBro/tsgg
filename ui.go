@@ -107,7 +107,17 @@ func layout(g *gocui.Gui) error {
 		xDimension = maxX - 1
 	}
 
-	if messages, err := g.SetView("messages", 0, 0, xDimension, maxY-3, 0); err != nil {
+	if links, err := g.SetView("links", 0, 0, xDimension, 3, 0); err != nil {
+		if !gocui.IsUnknownView(err) {
+			return err
+		}
+		links.Title = " links: "
+		links.Autoscroll = false
+		links.Wrap = true
+		links.Highlight = true
+	}
+
+	if messages, err := g.SetView("messages", 0, 3, xDimension, maxY-3, 0); err != nil {
 		if !gocui.IsUnknownView(err) {
 			return err
 		}
