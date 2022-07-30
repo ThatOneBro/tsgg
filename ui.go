@@ -437,7 +437,7 @@ func scroll(dy int, chat *chat, view string) error {
 	}
 
 	// Do not scroll at all if the view is not full.
-	if (view == "users" || view == "help" || view == "debug") && strings.Count(v.Buffer(), "\n") < y {
+	if (view == "users" || view == "help" || view == "debug" || view == "links") && strings.Count(v.Buffer(), "\n") < y {
 		ty = 0
 	}
 
